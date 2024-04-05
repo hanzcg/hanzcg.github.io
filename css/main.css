@@ -1,11 +1,17 @@
 body {
     font-family: 'Courier New', Courier, monospace;
 }
-.center {
+.principalDiv {
     margin: auto;
     margin-top: 30px;
     width: 60%;
     border: 3px solid #336699;
     padding: 10px;
     text-align: center;
+  }
+
+  a {
+    text-decoration: none;
+    color: #336699;
+    font-weight: bold;
   }
