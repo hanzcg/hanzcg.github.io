@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estimador de Esfuerzo · Puntos de Función Ajustados</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #F2EEE1;
+    --paper-raised: #FBF9F2;
+    --ink: #1C2A28;
+    --ink-soft: #4B5A56;
+    --line: #C7BFA6;
+    --line-soft: #DDD6C1;
+    --accent: #1B6B63;
+    --accent-deep: #124A44;
+    --accent-warm: #A9691F;
+    --danger: #9C3B33;
+    --radius: 3px;
+    --serif: 'Fraunces', 'Iowan Old Style', serif;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 92px;
+  }
+
+  ::selection{ background: var(--accent); color: var(--paper-raised); }
+
+  a{ color: var(--accent-deep); }
+
+  .masthead{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 24px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .masthead .kicker{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+    margin: 0 0 10px;
+  }
+  .masthead h1{
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .masthead p{
+    color: var(--ink-soft);
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .workspace{
+    max-width: 980px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+
+  .stepnav{
+    position: sticky;
+    top: 0;
+    padding: 28px 12px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stepnav button{
+    text-align: left;
+    background: none;
+    border: none;
+    border-left: 2px solid transparent;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 0;
+  }
+  .stepnav button .n{
+    font-family: var(--mono);
+    color: var(--ink-soft);
+    margin-right: 8px;
+  }
+  .stepnav button:hover{ color: var(--ink); }
+  .stepnav button.active{
+    color: var(--ink);
+    border-left-color: var(--accent);
+    background: var(--paper-raised);
+    font-weight: 500;
+  }
+  .stepnav button.active .n{ color: var(--accent-deep); }
+  .stepnav button:focus-visible, button:focus-visible, input:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .sheet{
+    background: var(--paper-raised);
+    border-left: 1px solid var(--line);
+    min-height: 70vh;
+    padding: 32px 28px 48px;
+  }
+
+  .panel{ display: none; }
+  .panel.active{ display: block; }
+
+  .panel h2{
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    margin: 0 0 6px;
+  }
+  .panel .lede{
+    color: var(--ink-soft);
+    font-size: 14px;
+    max-width: 60ch;
+    margin: 0 0 24px;
+  }
+
+  table.ledger{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.ledger thead th{
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    padding: 0 8px 8px 0;
+  }
+  table.ledger thead th.num{ text-align: right; }
+  table.ledger tbody td{
+    padding: 12px 8px 12px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: middle;
+  }
+  table.ledger tbody tr:last-child td{ border-bottom: 1px solid var(--line); }
+  table.ledger td.label{
+    font-weight: 500;
+  }
+  table.ledger td.label .sub{
+    display:block;
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+  table.ledger td.num{ text-align: right; }
+
+  .bar-track{
+    height: 4px;
+    background: var(--line-soft);
+    margin-top: 8px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill{
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+  }
+
+  input[type="number"]{
+    width: 68px;
+    font-family: var(--mono);
+    font-size: 14px;
+    text-align: right;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    color: var(--ink);
+  }
+  input[type="number"]:focus{ border-color: var(--accent); }
+
+  .gsc-row{
+    display: grid;
+    grid-template-columns: 1fr 200px 28px;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .gsc-row:last-child{ border-bottom: 1px solid var(--line); }
+  .gsc-row .g-label{ font-size: 14px; }
+  .gsc-row .g-label .idx{ font-family: var(--mono); color: var(--ink-soft); margin-right: 8px; font-size: 12.5px; }
+  .gsc-row input[type="range"]{
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .gsc-row .g-val{
+    font-family: var(--mono);
+    text-align: right;
+    color: var(--accent-deep);
+    font-weight: 600;
+  }
+
+  .field-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 28px;
+    margin-bottom: 28px;
+  }
+  .field{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label{ font-size: 13px; color: var(--ink-soft); }
+  .field select, .field input[type="number"]{
+    width: 100%;
+    font-size: 14px;
+    padding: 9px 10px;
+    font-family: var(--mono);
+  }
+  .field select{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--ink);
+  }
+  .field .hint{ font-size: 12px; color: var(--ink-soft); font-family: var(--sans); }
+
+  .result-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin: 8px 0 28px;
+  }
+  .result-cell{
+    background: var(--paper-raised);
+    padding: 18px 16px;
+  }
+  .result-cell .rk{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .result-cell .rv{
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+  .result-cell .rv small{ font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .result-cell.hero{
+    background: var(--accent-deep);
+  }
+  .result-cell.hero .rk{ color: #CBE0DB; }
+  .result-cell.hero .rv{ color: #F7F4E9; }
+  .result-cell.hero .rv small{ color: #CBE0DB; }
+
+  .duration-line{
+    display:flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    padding: 18px 0 4px;
+    border-top: 1px dashed var(--line);
+    margin-top: 8px;
+  }
+  .duration-line .d-item .dk{ font-size: 12px; color: var(--ink-soft); }
+  .duration-line .d-item .dv{ font-family: var(--mono); font-size: 18px; font-weight: 600; }
+
+  .note{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--line);
+    padding: 4px 0 4px 12px;
+    margin-top: 20px;
+    max-width: 62ch;
+  }
+
+  .totals-bar{
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--accent-deep);
+    color: #F7F4E9;
+    border-top: 1px solid var(--ink);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 13px;
+    z-index: 10;
+  }
+  .totals-bar .t-item .tk{ color: #A9C4BE; font-size: 11px; display:block; }
+  .totals-bar .t-item .tv{ font-size: 16px; font-weight: 600; }
+
+  .nav-actions{
+    display:flex;
+    justify-content: space-between;
+    margin-top: 32px;
+  }
+  .nav-actions button{
+    font-family: var(--sans);
+    font-size: 13.5px;
+    font-weight: 500;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .nav-actions button.ghost{
+    background: none;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+  }
+  .nav-actions button:hover{ opacity: 0.92; }
+
+  @media (max-width: 760px){
+    .workspace{ grid-template-columns: 1fr; }
+    .stepnav{
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .stepnav button{ white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; }
+    .stepnav button.active{ border-left: none; border-bottom-color: var(--accent); }
+    .sheet{ border-left: none; padding: 24px 18px 40px; }
+    .field-grid{ grid-template-columns: 1fr; }
+    .result-grid{ grid-template-columns: 1fr; }
+    .gsc-row{ grid-template-columns: 1fr; row-gap: 8px; }
+    .gsc-row .g-val{ text-align: left; }
+    .totals-bar{ gap: 18px; padding: 10px 14px; font-size: 11.5px; }
+    .totals-bar .t-item .tv{ font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <p class="kicker">IFPUG · Análisis de Puntos de Función</p>
+  <h1>Estimador de esfuerzo por Puntos de Función Ajustados</h1>
+  <p>Registra los componentes de datos y de transacción del requerimiento, 
+    califica los catorce factores de ajuste y obtén una estimación de horas-persona 
+    y duración calendario para el desarrollo. <a href="manual-estimador-fpa.html" target="_blank">Vea al manual aquí</a></p>
+</header>
+
+<div class="workspace">
+  <nav class="stepnav">
+    <button class="step active" data-step="datos"><span class="n">1</span>Archivos lógicos</button>
+    <button class="step" data-step="trans"><span class="n">2</span>Procesos transaccionales</button>
+    <button class="step" data-step="ajuste"><span class="n">3</span>Factores de ajuste</button>
+    <button class="step" data-step="resultado"><span class="n">4</span>Productividad y estimación</button>
+  </nav>
+
+  <main class="sheet">
+
+    <!-- PANEL 1: ILF / EIF -->
+    <section id="datos" class="panel active">
+      <h2>Componentes de datos</h2>
+      <p class="lede">Cuenta los archivos lógicos internos (ILF) que el sistema mantiene y los archivos de interfaz externa (EIF) que solo consulta, clasificados por complejidad.</p>
+
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th class="num">Baja</th>
+            <th class="num">Media</th>
+            <th class="num">Alta</th>
+            <th class="num">Subtotal PF</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-datos"></tbody>
+      </table>
+
+      <div class="nav-actions">
+        <span></span>
+        <button data-goto="trans">Continuar a procesos transaccionales</button>
+      </div>
+    </section>
+
+    <!-- PANEL 2: EI / EO / EQ -->
+    <section id="trans" class="panel">
+      <h2>Procesos transaccionales</h2>
+      <p class="lede">Cuenta las entradas externas (EI), salidas externas (EO) y consultas externas (EQ) que el requerimiento debe implementar, clasificadas por complejidad.</p>
+
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th class="num">Baja</th>
+            <th class="num">Media</th>
+            <th class="num">Alta</th>
+            <th class="num">Subtotal PF</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-trans"></tbody>
+      </table>
+
+      <div class="nav-actions">
+        <button class="ghost" data-goto="datos">Volver</button>
+        <button data-goto="ajuste">Continuar a factores de ajuste</button>
+      </div>
+    </section>
+
+    <!-- PANEL 3: GSC -->
+    <section id="ajuste" class="panel">
+      <h2>Factores de ajuste (GSC)</h2>
+      <p class="lede">Califica del 0 (sin influencia) al 5 (influencia esencial) cada característica general del sistema. El valor por defecto es 3, un punto medio razonable si aún no lo has evaluado.</p>
+
+      <div id="gsc-list"></div>
+
+      <div class="nav-actions">
+        <button class="ghost" data-goto="trans">Volver</button>
+        <button data-goto="resultado">Continuar a la estimación</button>
+      </div>
+    </section>
+
+    <!-- PANEL 4: Productividad y resultado -->
+    <section id="resultado" class="panel">
+      <h2>Productividad y estimación</h2>
+      <p class="lede">Convierte los puntos de función ajustados en horas-persona usando una tasa de productividad. Los valores de referencia son orientativos: reemplázalos con datos históricos de tu equipo cuando los tengas.</p>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="prodPreset">Tasa de productividad de referencia</label>
+          <select id="prodPreset">
+            <option value="20">Equipo junior / tecnología compleja o heredada — 20 h por PF</option>
+            <option value="12" selected>Equipo mixto / tecnología estándar — 12 h por PF</option>
+            <option value="7">Equipo senior / alta reutilización — 7 h por PF</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="prodCustom">Horas-persona por punto de función</label>
+          <input type="number" id="prodCustom" value="12" min="1" step="0.5">
+          <span class="hint">Se usa cuando eliges "Personalizado" arriba.</span>
+        </div>
+        <div class="field">
+          <label for="hoursDay">Horas efectivas por día</label>
+          <input type="number" id="hoursDay" value="8" min="1" max="12" step="0.5">
+        </div>
+        <div class="field">
+          <label for="daysWeek">Días laborables por semana</label>
+          <input type="number" id="daysWeek" value="5" min="1" max="7" step="1">
+        </div>
+        <div class="field">
+          <label for="teamSize">Desarrolladores asignados en paralelo</label>
+          <input type="number" id="teamSize" value="1" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="buffer">Colchón de riesgo</label>
+          <input type="number" id="buffer" value="15" min="0" max="60" step="5">
+          <span class="hint">Porcentaje adicional sobre el esfuerzo base.</span>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-cell">
+          <div class="rk">Puntos de función sin ajustar (PFSA)</div>
+          <div class="rv" id="out-ufp">0</div>
+        </div>
+        <div class="result-cell">
+          <div class="rk">Factor de valor de ajuste (VAF)</div>
+          <div class="rv" id="out-vaf">0.65<small> · TDI 0</small></div>
+        </div>
+        <div class="result-cell">
+          <div class="rk">Puntos de función ajustados (PFA)</div>
+          <div class="rv" id="out-afp">0</div>
+        </div>
+        <div class="result-cell hero" style="grid-column: 1 / -1;">
+          <div class="rk">Esfuerzo estimado, con colchón de riesgo incluido</div>
+          <div class="rv" id="out-effort">0 <small>horas-persona</small></div>
+        </div>
+      </div>
+
+      <div class="duration-line">
+        <div class="d-item"><span class="dk">Esfuerzo base (sin colchón)</span><span class="dv" id="out-base">0 h</span></div>
+        <div class="d-item"><span class="dk">Duración calendario</span><span class="dv" id="out-days">0 días</span></div>
+        <div class="d-item"><span class="dk">En semanas</span><span class="dv" id="out-weeks">0 sem.</span></div>
+        <div class="d-item"><span class="dk">En meses</span><span class="dv" id="out-months">0 meses</span></div>
+      </div>
+
+      <p class="note">La duración calendario asume que el esfuerzo se reparte de forma pareja entre los desarrolladores asignados; en la práctica, coordinación, dependencias y curva de aprendizaje suelen alargarla. Úsala como punto de partida para negociar el cronograma, no como compromiso final.</p>
+
+      <div class="nav-actions">
+        <button class="ghost" data-goto="ajuste">Volver</button>
+        <span></span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="totals-bar">
+  <div class="t-item"><span class="tk">PF sin ajustar</span><span class="tv" id="bar-ufp">0</span></div>
+  <div class="t-item"><span class="tk">VAF</span><span class="tv" id="bar-vaf">0.65</span></div>
+  <div class="t-item"><span class="tk">PF ajustados</span><span class="tv" id="bar-afp">0</span></div>
+  <div class="t-item"><span class="tk">Esfuerzo</span><span class="tv" id="bar-effort">0 h</span></div>
+  <div class="t-item"><span class="tk">Duración</span><span class="tv" id="bar-duration">0 días</span></div>
+</footer>
+
+<script>
+(function(){
+
+  const WEIGHTS = {
+    EI:  { label: "Entradas externas (EI)",  sub: "Datos que ingresan y modifican información del sistema.", low:3, avg:4, high:6 },
+    EO:  { label: "Salidas externas (EO)",   sub: "Datos derivados o calculados que salen del sistema.",      low:4, avg:5, high:7 },
+    EQ:  { label: "Consultas externas (EQ)", sub: "Combinación de entrada y salida sin cálculo derivado.",   low:3, avg:4, high:6 },
+    ILF: { label: "Archivos lógicos internos (ILF)", sub: "Datos mantenidos dentro del límite del sistema.", low:7, avg:10, high:15 },
+    EIF: { label: "Archivos de interfaz externa (EIF)", sub: "Datos de referencia mantenidos por otro sistema.", low:5, avg:7, high:10 }
+  };
+
+  const DATA_TYPES = ["ILF", "EIF"];
+  const TRANS_TYPES = ["EI", "EO", "EQ"];
+
+  const GSC_LABELS = [
+    "Comunicación de datos",
+    "Procesamiento distribuido de datos",
+    "Rendimiento (tiempos de respuesta)",
+    "Configuración muy utilizada",
+    "Volumen de transacciones",
+    "Entrada de datos en línea",
+    "Eficiencia para el usuario final",
+    "Actualización en línea de archivos lógicos",
+    "Complejidad del procesamiento interno",
+    "Reusabilidad del código",
+    "Facilidad de instalación",
+    "Facilidad de operación",
+    "Múltiples emplazamientos",
+    "Facilidad de adaptación al cambio"
+  ];
+
+  const state = {
+    counts: {}, // counts[type] = {low, avg, high}
+    gsc: new Array(14).fill(3)
+  };
+  Object.keys(WEIGHTS).forEach(t => state.counts[t] = { low:0, avg:0, high:0 });
+
+  function buildRow(type){
+    const w = WEIGHTS[type];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="label">${w.label}<span class="sub">${w.sub}</span></td>
+      <td class="num"><input type="number" min="0" step="1" value="0" data-type="${type}" data-level="low"></td>
+      <td class="num"><input type="number" min="0" step="1" value="0" data-type="${type}" data-level="avg"></td>
+      <td class="num"><input type="number" min="0" step="1" value="0" data-type="${type}" data-level="high"></td>
+      <td class="num" style="font-family: var(--mono); font-weight:600;">
+        <span id="subtotal-${type}">0</span>
+        <div class="bar-track"><div class="bar-fill" id="bar-${type}"></div></div>
+      </td>
+    `;
+    return tr;
+  }
+
+  const tblDatos = document.getElementById("tbl-datos");
+  const tblTrans = document.getElementById("tbl-trans");
+  DATA_TYPES.forEach(t => tblDatos.appendChild(buildRow(t)));
+  TRANS_TYPES.forEach(t => tblTrans.appendChild(buildRow(t)));
+
+  document.querySelectorAll('input[type="number"][data-type]').forEach(inp => {
+    inp.addEventListener("input", () => {
+      const type = inp.dataset.type, level = inp.dataset.level;
+      state.counts[type][level] = Math.max(0, parseInt(inp.value || "0", 10));
+      recalc();
+    });
+  });
+
+  const gscList = document.getElementById("gsc-list");
+  GSC_LABELS.forEach((label, i) => {
+    const row = document.createElement("div");
+    row.className = "gsc-row";
+    row.innerHTML = `
+      <div class="g-label"><span class="idx">${(i+1).toString().padStart(2,"0")}</span>${label}</div>
+      <input type="range" min="0" max="5" step="1" value="3" data-idx="${i}">
+      <div class="g-val" id="gscval-${i}">3</div>
+    `;
+    gscList.appendChild(row);
+  });
+  gscList.querySelectorAll('input[type="range"]').forEach(rng => {
+    rng.addEventListener("input", () => {
+      const idx = parseInt(rng.dataset.idx, 10);
+      state.gsc[idx] = parseInt(rng.value, 10);
+      document.getElementById(`gscval-${idx}`).textContent = rng.value;
+      recalc();
+    });
+  });
+
+  const prodPreset = document.getElementById("prodPreset");
+  const prodCustom = document.getElementById("prodCustom");
+  [prodPreset, prodCustom, document.getElementById("hoursDay"), document.getElementById("daysWeek"),
+   document.getElementById("teamSize"), document.getElementById("buffer")].forEach(el => {
+    el.addEventListener("input", recalc);
+    el.addEventListener("change", recalc);
+  });
+
+  function currentProductivity(){
+    if (prodPreset.value === "custom") return Math.max(0.5, parseFloat(prodCustom.value || "12"));
+    return parseFloat(prodPreset.value);
+  }
+
+  function fmt(n, decimals){
+    if (decimals === undefined) decimals = 0;
+    return n.toLocaleString("es-PE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function recalc(){
+    let ufp = 0;
+    const subtotals = {};
+    Object.keys(WEIGHTS).forEach(type => {
+      const c = state.counts[type], w = WEIGHTS[type];
+      const subtotal = c.low*w.low + c.avg*w.avg + c.high*w.high;
+      subtotals[type] = subtotal;
+      ufp += subtotal;
+      const span = document.getElementById(`subtotal-${type}`);
+      if (span) span.textContent = subtotal;
+    });
+    Object.keys(WEIGHTS).forEach(type => {
+      const bar = document.getElementById(`bar-${type}`);
+      if (bar) bar.style.width = (ufp > 0 ? (subtotals[type]/ufp*100) : 0) + "%";
+    });
+
+    const tdi = state.gsc.reduce((a,b) => a+b, 0);
+    const vaf = 0.65 + 0.01*tdi;
+    const afp = ufp * vaf;
+
+    const rate = currentProductivity();
+    const baseHours = afp * rate;
+    const bufferPct = Math.max(0, parseFloat(document.getElementById("buffer").value || "0"));
+    const totalHours = baseHours * (1 + bufferPct/100);
+
+    const hoursDay = Math.max(0.5, parseFloat(document.getElementById("hoursDay").value || "8"));
+    const daysWeek = Math.max(1, parseFloat(document.getElementById("daysWeek").value || "5"));
+    const teamSize = Math.max(1, parseFloat(document.getElementById("teamSize").value || "1"));
+
+    const calendarDays = totalHours / (hoursDay * teamSize);
+    const calendarWeeks = calendarDays / daysWeek;
+    const calendarMonths = calendarWeeks / 4.33;
+
+    document.getElementById("out-ufp").textContent = fmt(ufp);
+    document.getElementById("out-vaf").innerHTML = `${fmt(vaf,2)}<small> · TDI ${tdi}</small>`;
+    document.getElementById("out-afp").textContent = fmt(afp,1);
+    document.getElementById("out-effort").innerHTML = `${fmt(totalHours,1)} <small>horas-persona</small>`;
+    document.getElementById("out-base").textContent = `${fmt(baseHours,1)} h`;
+    document.getElementById("out-days").textContent = `${fmt(calendarDays,1)} días`;
+    document.getElementById("out-weeks").textContent = `${fmt(calendarWeeks,1)} sem.`;
+    document.getElementById("out-months").textContent = `${fmt(calendarMonths,2)} meses`;
+
+    document.getElementById("bar-ufp").textContent = fmt(ufp);
+    document.getElementById("bar-vaf").textContent = fmt(vaf,2);
+    document.getElementById("bar-afp").textContent = fmt(afp,1);
+    document.getElementById("bar-effort").textContent = `${fmt(totalHours,1)} h`;
+    document.getElementById("bar-duration").textContent = `${fmt(calendarDays,1)} días`;
+  }
+
+  // Navigation between panels
+  const steps = document.querySelectorAll(".stepnav .step");
+  const panels = document.querySelectorAll(".panel");
+  function goTo(id){
+    steps.forEach(s => s.classList.toggle("active", s.dataset.step === id));
+    panels.forEach(p => p.classList.toggle("active", p.id === id));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  steps.forEach(s => s.addEventListener("click", () => goTo(s.dataset.step)));
+  document.querySelectorAll("[data-goto]").forEach(btn => {
+    btn.addEventListener("click", () => goTo(btn.dataset.goto));
+  });
+
+  recalc();
+})();
+</script>
+
+</body>
+</html>

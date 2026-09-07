@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual del Estimador de Esfuerzo por Puntos de Función Ajustados</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #F2EEE1;
+    --paper-raised: #FBF9F2;
+    --ink: #1C2A28;
+    --ink-soft: #4B5A56;
+    --line: #C7BFA6;
+    --line-soft: #DDD6C1;
+    --accent: #1B6B63;
+    --accent-deep: #124A44;
+    --accent-warm: #A9691F;
+    --serif: 'Fraunces', serif;
+    --body-serif: 'Source Serif 4', 'Iowan Old Style', serif;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body-serif);
+  }
+
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior: auto; } }
+
+  a{ color: var(--accent-deep); }
+  ::selection{ background: var(--accent); color: var(--paper-raised); }
+
+  .layout{
+    max-width: 1040px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+
+  .toc{
+    position: sticky;
+    top: 0;
+    padding: 44px 16px 40px 24px;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  .toc .eyebrow{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+  }
+  .toc a{
+    display:block;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 7px 10px;
+    border-left: 2px solid transparent;
+  }
+  .toc a:hover, .toc a:focus-visible{ color: var(--ink); border-left-color: var(--line); }
+  .toc a.aud-tag{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--accent-deep);
+    padding: 0 0 0 10px;
+    margin-top: -4px;
+  }
+
+  main{
+    background: var(--paper-raised);
+    border-left: 1px solid var(--line);
+    padding: 48px 56px 80px;
+  }
+
+  header.title-block{
+    max-width: 62ch;
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  header.title-block .kicker{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin: 0 0 12px;
+  }
+  header.title-block h1{
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(28px, 3.6vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  header.title-block p{
+    font-family: var(--sans);
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  section{ max-width: 68ch; margin-bottom: 44px; scroll-margin-top: 20px; }
+
+  h2{
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 23px;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  h2 .num{
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent-deep);
+    margin-right: 10px;
+  }
+  h3{
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 26px 0 8px;
+  }
+
+  p{ font-size: 16px; line-height: 1.65; margin: 0 0 14px; }
+  li{ font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
+  ul, ol{ padding-left: 22px; margin: 0 0 16px; }
+
+  strong{ color: var(--ink); }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0 22px;
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  th{
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-soft);
+    font-size: 12px;
+    padding: 0 12px 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  td{
+    padding: 12px 12px 12px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tr:last-child td{ border-bottom: 1px solid var(--line); }
+  td:first-child, th:first-child{ font-weight: 500; white-space: nowrap; }
+
+  .callout{
+    background: var(--paper);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin: 4px 0 22px;
+  }
+  .callout strong{ color: var(--ink); }
+
+  .callout.warn{ border-left-color: var(--accent-warm); }
+
+  footer.doc-foot{
+    max-width: 62ch;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  @media print{
+    .toc{ display:none; }
+    .layout{ display:block; }
+    main{ border-left:none; padding: 0; }
+    body{ background: #fff; }
+  }
+
+  @media (max-width: 820px){
+    .layout{ grid-template-columns: 1fr; }
+    .toc{
+      position: static;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 20px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .toc a{ padding: 6px 10px; border-left:none; }
+    .toc a.aud-tag{ display:none; }
+    main{ border-left:none; padding: 32px 22px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <nav class="toc">
+    <p class="eyebrow">Contenido</p>
+    <a href="#intro">Qué es esto y para qué sirve</a>
+    <a href="#stakeholders">Para stakeholders</a>
+    <span class="aud-tag">lectura del resultado</span>
+    <a href="#equipo">Para el equipo</a>
+    <span class="aud-tag">uso de la herramienta</span>
+    <a href="#glosario">Glosario rápido</a>
+    <a href="#practicas">Buenas prácticas</a>
+  </nav>
+
+  <main>
+    <header class="title-block">
+      <p class="kicker">Manual de uso</p>
+      <h1>Estimador de esfuerzo por Puntos de Función Ajustados</h1>
+      <p>Esta guía explica qué hace la herramienta, cómo usarla y cómo interpretar sus resultados. Está pensada tanto para quien solo necesita leer y confiar en el número final, como para quien alimenta la herramienta con datos del requerimiento.</p>
+    </header>
+
+    <section id="intro">
+      <h2><span class="num">01</span>Qué es esto y para qué sirve</h2>
+      <p>El estimador convierte una descripción de lo que el sistema debe hacer en una cifra de horas de trabajo y tiempo calendario, usando una técnica llamada Análisis de Puntos de Función (FPA), reconocida internacionalmente bajo el estándar IFPUG.</p>
+      <p>En lugar de estimar "a ojo" o solo por analogía con proyectos pasados, la técnica cuenta de forma estructurada:</p>
+      <ul>
+        <li>Qué datos maneja el sistema (por ejemplo: clientes, pedidos, configuraciones).</li>
+        <li>Qué operaciones puede hacer el usuario sobre esos datos (registrar, consultar, actualizar, generar un reporte).</li>
+        <li>Qué tan exigente es el entorno técnico y de negocio en el que va a operar (rendimiento, seguridad, múltiples sedes, etc.).</li>
+      </ul>
+      <p>El resultado es un número de puntos de función, que luego se traduce a horas y días según la capacidad real del equipo.</p>
+    </section>
+
+    <section id="stakeholders">
+      <h2><span class="num">02</span>Para stakeholders: cómo leer el resultado</h2>
+      <p>No necesitas entender la fórmula para usar el resultado. Estas son las cifras que verás y qué significa cada una:</p>
+      <table>
+        <thead><tr><th>Indicador</th><th>Qué significa en términos simples</th></tr></thead>
+        <tbody>
+          <tr><td>PF sin ajustar (PFSA)</td><td>El "tamaño" del requerimiento: cuántos datos y operaciones distintas incluye. A más puntos, más grande es el trabajo.</td></tr>
+          <tr><td>Factor de valor de ajuste (VAF)</td><td>Un multiplicador que sube o baja el tamaño según qué tan exigente es el contexto (por ejemplo, si debe funcionar en varias sedes o soportar mucho volumen de uso).</td></tr>
+          <tr><td>PF ajustados (PFA)</td><td>El tamaño final del requerimiento, ya considerando esas exigencias.</td></tr>
+          <tr><td>Esfuerzo estimado (horas-persona)</td><td>Cuántas horas de trabajo humano se necesitan en total para construirlo, incluyendo un colchón de riesgo.</td></tr>
+          <tr><td>Duración calendario</td><td>Cuánto tiempo tomará en días, semanas o meses, considerando cuántas personas del equipo trabajarán en paralelo.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Preguntas útiles para hacerle al equipo al revisar una estimación</h3>
+      <ul>
+        <li>¿Este número ya incluye pruebas y correcciones, o solo la construcción?</li>
+        <li>¿Qué pasaría con el tiempo si sumamos una persona más al equipo?</li>
+        <li>¿Qué tan seguro está el equipo de las cifras de complejidad que usaron para contar?</li>
+      </ul>
+
+      <div class="callout warn">
+        <strong>Lo que este número no es:</strong> no es una promesa contractual exacta ni un compromiso de fecha fija. Es una estimación basada en el alcance conocido hasta ese momento; si el alcance cambia, la estimación debe recalcularse.
+      </div>
+    </section>
+
+    <section id="equipo">
+      <h2><span class="num">03</span>Para el equipo de desarrollo: cómo alimentar la herramienta</h2>
+      <p>La herramienta tiene cuatro pasos. Se completan en orden, aunque se puede regresar a cualquiera en cualquier momento.</p>
+
+      <h3>Paso 1 — Archivos lógicos (ILF / EIF)</h3>
+      <p>Aquí se cuentan los grupos de datos que el sistema maneja, no las tablas físicas de la base de datos.</p>
+      <ul>
+        <li><strong>ILF (Archivo Lógico Interno):</strong> un grupo de datos que el sistema que estás construyendo mantiene (crea, actualiza o elimina). Ejemplo: "Cliente", "Pedido", "Configuración del sistema".</li>
+        <li><strong>EIF (Archivo de Interfaz Externa):</strong> un grupo de datos que el sistema solo consulta, porque pertenece y es mantenido por otro sistema. Ejemplo: un catálogo de tipo de cambio que viene de un sistema externo.</li>
+      </ul>
+      <div class="callout">
+        Cada grupo de datos se cuenta <strong>una sola vez para todo el proyecto</strong>, sin importar cuántos requerimientos lo usen. Si 5 requerimientos distintos leen o modifican "Cliente", eso sigue siendo 1 ILF. Un mismo concepto de negocio puede estar dividido en varias tablas físicas normalizadas y seguir siendo un solo ILF, si el negocio lo percibe como una sola cosa.
+      </div>
+
+      <h3>Paso 2 — Procesos transaccionales (EI / EO / EQ)</h3>
+      <p>Aquí se cuentan las operaciones que el usuario puede ejecutar:</p>
+      <ul>
+        <li><strong>EI (Entrada externa):</strong> una operación que ingresa datos y los guarda o modifica. Ejemplo: registrar un cliente nuevo.</li>
+        <li><strong>EO (Salida externa):</strong> una operación que entrega información con algún cálculo o derivación. Ejemplo: un reporte de ventas con totales y porcentajes.</li>
+        <li><strong>EQ (Consulta externa):</strong> una operación que solo recupera y muestra datos, sin cálculos ni derivaciones. Ejemplo: buscar un cliente por su número de documento.</li>
+      </ul>
+      <p>A diferencia de los ILF/EIF, aquí sí cuenta cada operación distinta por separado: si el sistema permite registrar, editar y eliminar un cliente, son 3 EI diferentes, no una.</p>
+
+      <h3>Paso 3 — Factores de ajuste (GSC)</h3>
+      <p>Son 14 características generales del entorno del sistema (rendimiento, volumen de transacciones, múltiples sedes, facilidad de cambio, etc.). Cada una se califica de 0 (no aplica) a 5 (esencial para el sistema).</p>
+      <p>Recomendación: esta calificación debería hacerla el líder técnico o arquitecto del proyecto, junto con alguien que conozca los requisitos no funcionales, no solo quien contó los puntos de función.</p>
+
+      <h3>Paso 4 — Productividad y estimación</h3>
+      <p>Aquí se traduce el tamaño (puntos de función) en tiempo real de trabajo:</p>
+      <ul>
+        <li><strong>Tasa de productividad:</strong> tres valores de referencia (junior/tecnología compleja, mixto, senior/alta reutilización) más una opción personalizada. Son orientativos — deben reemplazarse con datos históricos reales en cuanto se disponga de ellos.</li>
+        <li><strong>Horas por día y días por semana:</strong> la jornada real de trabajo efectivo, no la jornada administrativa completa.</li>
+        <li><strong>Desarrolladores en paralelo:</strong> se usa solo para calcular la duración calendario, no el esfuerzo total en horas.</li>
+        <li><strong>Colchón de riesgo:</strong> un porcentaje adicional sobre el esfuerzo base, para absorber imprevistos o requisitos que se afinan durante la construcción.</li>
+      </ul>
+
+      <div class="callout warn">
+        <strong>Advertencia:</strong> la duración calendario asume que el trabajo se reparte de forma pareja entre las personas asignadas. En la práctica, coordinación, dependencias y curva de aprendizaje suelen alargar ese tiempo — trátalo como punto de partida para negociar el cronograma, no como el cronograma final.
+      </div>
+    </section>
+
+    <section id="glosario">
+      <h2><span class="num">04</span>Glosario rápido</h2>
+      <table>
+        <thead><tr><th>Término</th><th>Definición breve</th></tr></thead>
+        <tbody>
+          <tr><td>FPA</td><td>Function Point Analysis: técnica para medir el tamaño funcional de un software.</td></tr>
+          <tr><td>IFPUG</td><td>Organización internacional que define el estándar de conteo de puntos de función.</td></tr>
+          <tr><td>ILF</td><td>Archivo Lógico Interno: dato mantenido por el propio sistema.</td></tr>
+          <tr><td>EIF</td><td>Archivo de Interfaz Externa: dato mantenido por otro sistema y solo consultado.</td></tr>
+          <tr><td>EI / EO / EQ</td><td>Entrada / Salida / Consulta externa: los tres tipos de operación que puede hacer un usuario.</td></tr>
+          <tr><td>GSC</td><td>Características Generales del Sistema: los 14 factores de ajuste del entorno técnico.</td></tr>
+          <tr><td>TDI</td><td>Suma de las calificaciones de los 14 GSC (va de 0 a 70).</td></tr>
+          <tr><td>VAF</td><td>Factor de Valor de Ajuste: se calcula a partir del TDI y ajusta el tamaño final.</td></tr>
+          <tr><td>PFSA</td><td>Puntos de Función Sin Ajustar: tamaño antes de aplicar el VAF.</td></tr>
+          <tr><td>PFA</td><td>Puntos de Función Ajustados: tamaño final, PFSA multiplicado por el VAF.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="practicas">
+      <h2><span class="num">05</span>Buenas prácticas al usar la herramienta</h2>
+      <ul>
+        <li>Cuenta los ILF/EIF y EI/EO/EQ antes de calificar los GSC; es más fácil evaluar la complejidad del entorno cuando ya tienes claro qué se va a construir.</li>
+        <li>Vuelve a estimar cuando cambie el alcance del requerimiento — la herramienta no guarda historial, así que conviene registrar el resultado junto con la fecha y versión del alcance evaluado.</li>
+        <li>Si dos personas cuentan el mismo requerimiento y llegan a números muy distintos, normalmente es porque no están de acuerdo en qué cuenta como "un" ILF o "una" operación — conviene resolver esa diferencia de criterio antes de comparar resultados entre proyectos.</li>
+      </ul>
+    </section>
+
+    <footer class="doc-foot">
+      Manual de referencia del Estimador de Esfuerzo por Puntos de Función Ajustados.
+    </footer>
+  </main>
+</div>
+
+</body>
+</html>
